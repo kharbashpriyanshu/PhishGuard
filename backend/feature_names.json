@@ -1,0 +1,1 @@
+["url_length", "host_length", "path_length", "num_dots", "num_hyphens", "num_at", "has_https", "starts_with_ip", "tld_length", "num_subdomains", "digits_ratio", "special_char_ratio", "entropy", "suspicious_words_count", "has_long_tld", "has_long_subdomain"]
