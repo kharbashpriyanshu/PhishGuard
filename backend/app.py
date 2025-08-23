@@ -1,52 +1,53 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import joblib
-import tldextract
-import Levenshtein
+
+# Load model and vectorizer
+model = joblib.load("model.pkl")
+vectorizer = joblib.load("vectorizer.pkl")
 
 app = Flask(__name__)
-CORS(app)
 
-# Load your trained model
-model = joblib.load("model.pkl")
+@app.route("/predict_url", methods=["POST"])
+def predict_url():
+    """POST endpoint to check URL (for API calls)."""
+    data = request.get_json()
+    url = data.get("url")
 
-# Known legitimate domains (you can add more)
-trusted_domains = ["facebook.com", "google.com", "yahoo.com", "amazon.com", "paypal.com"]
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
 
-# Function to check similarity
-def is_domain_suspicious(domain):
-    for trusted in trusted_domains:
-        distance = Levenshtein.distance(domain, trusted)
-        if distance <= 3:  # small difference = suspicious
-            return True, trusted
-    return False, None
+    features = vectorizer.transform([url])
+    prediction = model.predict(features)[0]
+    score = model.predict_proba(features)[0][prediction]
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    try:
-        data = request.json
-        url = data.get("url")
+    label = "phishing" if prediction == 1 else "legitimate"
 
-        if not url:
-            return jsonify({"error": "No URL provided"}), 400
+    return jsonify({
+        "url": url,
+        "label": label,
+        "score": float(score)
+    })
 
-        # Extract domain
-        extracted = tldextract.extract(url)
-        domain = extracted.domain + "." + extracted.suffix
 
-        # 1. Domain similarity check
-        suspicious, matched = is_domain_suspicious(domain)
-        if suspicious and domain != matched:
-            return jsonify({"prediction": "Phishing", "reason": f"Looks similar to {matched}"}), 200
+@app.route("/check_url", methods=["GET"])
+def check_url():
+    """GET endpoint to test directly in the browser."""
+    url = request.args.get("url")
 
-        # 2. Use ML model as fallback
-        prediction = model.predict([url])[0]
+    if not url:
+        return jsonify({"error": "Please provide a URL as a query parameter, e.g., /check_url?url=example.com"}), 400
 
-        result = "Phishing" if prediction == 1 else "Legitimate"
-        return jsonify({"prediction": result}), 200
+    features = vectorizer.transform([url])
+    prediction = model.predict(features)[0]
+    score = model.predict_proba(features)[0][prediction]
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    label = "phishing" if prediction == 1 else "legitimate"
+
+    return jsonify({
+        "url": url,
+        "label": label,
+        "score": float(score)
+    })
 
 
 if __name__ == "__main__":
