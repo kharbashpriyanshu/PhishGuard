@@ -1,13 +1,91 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard URL Feature Explorer</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5; }
+        h1 { color: #333; }
+        input[type="text"] { width: 400px; padding: 8px; }
+        button { padding: 8px 16px; margin-left: 10px; }
+        table { border-collapse: collapse; margin-top: 20px; width: 80%; background: white; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #eee; }
+        .error { color: red; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<h1>PhishGuard URL Feature Explorer</h1>
+
+<input type="text" id="urlInput" placeholder="Enter URL here" />
+<button onclick="getFeatures()">Get Features</button>
+
+<div id="errorMsg" class="error"></div>
+
+<table id="featuresTable" style="display: none;">
+    <thead>
+        <tr>
+            <th>Feature</th>
+            <th>Value</th>
+        </tr>
+    </thead>
+    <tbody id="featuresBody">
+    </tbody>
+</table>
+
+<script>
+async function getFeatures() {
+    const url = document.getElementById("urlInput").value.trim();
+    const errorDiv = document.getElementById("errorMsg");
+    const table = document.getElementById("featuresTable");
+    const tbody = document.getElementById("featuresBody");
+
+    errorDiv.textContent = "";
+    tbody.innerHTML = "";
+    table.style.display = "none";
+
+    if (!url) {
+        errorDiv.textContent = "Please enter a URL.";
+        return;
+    }
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/features', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.features) {
+            for (const [key, value] of Object.entries(data.features)) {
+                if (key === "extracted") continue; // skip nested extracted
+                const row = document.createElement("tr");
+                const keyCell = document.createElement("td");
+                keyCell.textContent = key;
+                const valueCell = document.createElement("td");
+                valueCell.textContent = value;
+                row.appendChild(keyCell);
+                row.appendChild(valueCell);
+                tbody.appendChild(row);
+            }
+            table.style.display = "table";
+        } else {
+            errorDiv.textContent = "No features returned from server.";
+        }
+    } catch (err) {
+        console.error(err);
+        errorDiv.textContent = "Error connecting to backend. Make sure Flask server is running.";
+    }
+}
+</script>
+
+</body>
 </html>
