@@ -1,0 +1,19 @@
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+
+# Data and models (comment out if you want to keep them in repo)
+backend/*.pkl
+data/
